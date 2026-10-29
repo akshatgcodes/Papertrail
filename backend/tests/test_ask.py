@@ -118,9 +118,9 @@ def test_decline(library, owner, fake_llm):
 
 
 def test_model_failure_is_a_notice(library, owner, fake_llm):
-    fake_llm(fail=RuntimeError("rate limited"))
+    fake_llm(fail=RuntimeError("org_123 secret detail"))
     ev = by_name(ask(owner))
-    assert "rate limited" in ev["notice"][0]["message"]
+    assert ev["notice"][0]["message"] == "The language model call failed (RuntimeError)."
     assert ev["answer"][0]["status"] == "error"
     assert owner.get(f"/api/queries/{ev['done'][0]['id']}").json()["status"] == "error"
 
@@ -130,7 +130,7 @@ def test_conflict_check_failure_keeps_the_answer(library, owner, fake_llm, monke
     monkeypatch.setattr(fake, "invoke", lambda m: (_ for _ in ()).throw(RuntimeError("boom")))
     ev = by_name(ask(owner))
     assert ev["answer"][0]["status"] == "answered"
-    assert "Conflict check failed" in ev["notice"][0]["message"]
+    assert ev["notice"][0]["message"].startswith("Conflict check skipped.")
     assert ev["conflicts"][0]["items"] == []
 
 
@@ -207,3 +207,11 @@ def test_pairs_touch_a_cited_source():
     vecs = {1: [1, 0], 2: [1, 0.01], 3: [1, 0.02]}
     pairs = conflicts.candidate_pairs(sources, vecs, cited={3})
     assert all(3 in (p.a.n, p.b.n) for p in pairs) and len(pairs) == 2
+
+
+def test_provider_errors_are_described_without_details():
+    class RateLimitError(Exception):
+        status_code = 429
+
+    assert "rate limit" in answer.describe(RateLimitError("org_01abc Used 199696"))
+    assert "org_01abc" not in answer.describe(RateLimitError("org_01abc"))

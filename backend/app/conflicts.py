@@ -10,15 +10,12 @@ different wording are not conflicts.
 """
 
 import json
-import logging
 import math
 from dataclasses import dataclass
 
 from app import answer, store
 from app.config import settings
 from app.retrieval import Source
-
-log = logging.getLogger("papertrail.conflicts")
 
 SYSTEM = """You check whether two passages from different documents contradict each other.
 
@@ -138,5 +135,4 @@ def check(pairs: list[Pair], model=None) -> list[dict]:
     except answer.GenerationError:
         raise
     except Exception as e:
-        log.warning("conflict check failed: %s", e)
-        raise answer.GenerationError(f"Conflict check failed: {type(e).__name__}") from e
+        raise answer.GenerationError(f"Conflict check skipped. {answer.describe(e)}") from e

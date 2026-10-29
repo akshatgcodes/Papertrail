@@ -7,6 +7,7 @@ Either way the model may reply NOT_IN_LIBRARY when the excerpts don't cover it, 
 told to point out disagreements between documents instead of quietly picking one.
 """
 
+import logging
 import re
 from collections.abc import Iterator
 
@@ -15,6 +16,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.config import settings
 from app.retrieval import Source
+
+log = logging.getLogger("papertrail.answer")
 
 DECLINE = "NOT_IN_LIBRARY"
 
@@ -44,6 +47,20 @@ Write a synthesis of what the excerpts say about the topic:
 
 class GenerationError(Exception):
     pass
+
+
+def describe(e: Exception) -> str:
+    """A message for the page. Provider errors can carry account details (Groq's 429
+    names the organisation), so the full text only goes to the log."""
+    log.warning("model call failed: %s", e)
+    name = type(e).__name__
+    if "RateLimit" in name or getattr(e, "status_code", None) == 429:
+        return "The model provider's rate limit was reached. Try again in a few minutes."
+    if "Authentication" in name or getattr(e, "status_code", None) == 401:
+        return "The model provider rejected the API key."
+    if "Timeout" in name:
+        return "The model took too long to answer."
+    return f"The language model call failed ({name})."
 
 
 def chat_model() -> BaseChatModel:
@@ -107,4 +124,4 @@ def stream(mode: str, query: str, sources: list[Source], model=None) -> Iterator
     except GenerationError:
         raise
     except Exception as e:
-        raise GenerationError(f"The language model call failed: {type(e).__name__}: {e}") from e
+        raise GenerationError(describe(e)) from e
