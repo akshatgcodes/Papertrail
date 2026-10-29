@@ -49,22 +49,30 @@ def cosine(u: list[float], v: list[float]) -> float:
     return dot / (nu * nv) if nu and nv else 0.0
 
 
-def candidate_pairs(sources: list[Source], vecs: dict[int, list[float]]) -> list[Pair]:
+def candidate_pairs(
+    sources: list[Source], vecs: dict[int, list[float]], cited: set[int] | None = None
+) -> list[Pair]:
     pairs = []
     for i, a in enumerate(sources):
         for b in sources[i + 1 :]:
             if a.document_id == b.document_id or a.chunk_id not in vecs or b.chunk_id not in vecs:
                 continue
+            if cited and a.n not in cited and b.n not in cited:
+                continue
             sim = cosine(vecs[a.chunk_id], vecs[b.chunk_id])
             if sim >= settings.conflict_similarity:
                 pairs.append(Pair(a, b, round(sim, 4)))
     pairs.sort(key=lambda p: -p.similarity)
-    # Spread the budget: one passage shouldn't take part in every pair
+    # Spread the budget: one pair per two documents, and no passage in more than two.
+    # Otherwise two near-identical articles (which rarely disagree) take every slot
+    seen_docs: set[tuple[int, int]] = set()
     used: dict[int, int] = {}
     out = []
     for p in pairs:
-        if used.get(p.a.chunk_id, 0) >= 2 or used.get(p.b.chunk_id, 0) >= 2:
+        docs = tuple(sorted((p.a.document_id, p.b.document_id)))
+        if docs in seen_docs or used.get(p.a.chunk_id, 0) >= 2 or used.get(p.b.chunk_id, 0) >= 2:
             continue
+        seen_docs.add(docs)
         used[p.a.chunk_id] = used.get(p.a.chunk_id, 0) + 1
         used[p.b.chunk_id] = used.get(p.b.chunk_id, 0) + 1
         out.append(p)
@@ -73,8 +81,10 @@ def candidate_pairs(sources: list[Source], vecs: dict[int, list[float]]) -> list
     return out
 
 
-def find_pairs(sources: list[Source]) -> list[Pair]:
-    return candidate_pairs(sources, store.vectors([s.chunk_id for s in sources]))
+def find_pairs(sources: list[Source], cited: set[int] | None = None) -> list[Pair]:
+    """Each pair has at least one passage the answer cited (any, if it cited none): a
+    disagreement matters when it touches what the answer relied on."""
+    return candidate_pairs(sources, store.vectors([s.chunk_id for s in sources]), cited)
 
 
 def _prompt(pairs: list[Pair]) -> str:

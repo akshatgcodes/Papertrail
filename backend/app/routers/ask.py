@@ -92,7 +92,7 @@ def ask(body: AskIn) -> StreamingResponse:
             yield sse("answer", {"answer": text, "status": "answered", "cited": sorted(cited)})
 
             if body.check_conflicts:
-                pairs = conflicts.find_pairs(sources)
+                pairs = conflicts.find_pairs(sources, cited)
                 if pairs:
                     yield sse("checking", {"pairs": len(pairs)})
                     try:

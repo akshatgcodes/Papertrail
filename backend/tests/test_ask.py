@@ -163,7 +163,8 @@ def test_candidate_pairs_only_across_documents_and_spread():
     sources = [src(1, 1), src(2, 1), src(3, 2), src(4, 3)]
     vecs = {1: [1, 0], 2: [1, 0.01], 3: [1, 0.02], 4: [0, 1]}
     pairs = conflicts.candidate_pairs(sources, vecs)
-    assert {(p.a.n, p.b.n) for p in pairs} == {(1, 3), (2, 3)}  # 4 is unrelated, 1-2 same doc
+    # 4 is unrelated and 1-2 share a document; 2-3 is closer than 1-3, same two documents
+    assert [(p.a.n, p.b.n) for p in pairs] == [(2, 3)]
 
 
 def test_pair_budget(monkeypatch):
@@ -191,3 +192,18 @@ def test_citations():
 def test_excerpt_labels():
     s = Source(1, 1, 1, "Paper", "pdf", "Intro", 2, "body", 0.8, 1.0)
     assert answer.excerpt(s) == "[1] Paper › Intro (page 3)\nbody"
+
+
+def test_one_pair_per_document_pair():
+    sources = [src(1, 1), src(2, 1), src(3, 2), src(4, 3)]
+    vecs = {1: [1, 0], 2: [1, 0.01], 3: [1, 0.02], 4: [1, 0.03]}
+    pairs = conflicts.candidate_pairs(sources, vecs)
+    docs = [tuple(sorted((p.a.document_id, p.b.document_id))) for p in pairs]
+    assert len(docs) == len(set(docs)) == 3
+
+
+def test_pairs_touch_a_cited_source():
+    sources = [src(1, 1), src(2, 2), src(3, 3)]
+    vecs = {1: [1, 0], 2: [1, 0.01], 3: [1, 0.02]}
+    pairs = conflicts.candidate_pairs(sources, vecs, cited={3})
+    assert all(3 in (p.a.n, p.b.n) for p in pairs) and len(pairs) == 2
