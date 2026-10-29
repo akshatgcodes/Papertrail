@@ -60,7 +60,10 @@ def vectors(chunk_ids: list[int]) -> dict[int, list[float]]:
     if not chunk_ids:
         return {}
     got = get_store().get(ids=[str(c) for c in chunk_ids], include=["embeddings"])
-    return {int(i): list(v) for i, v in zip(got["ids"], got["embeddings"], strict=True)}
+    # Chroma returns numpy arrays; plain floats keep the maths and the JSON simple
+    return {
+        int(i): [float(x) for x in v] for i, v in zip(got["ids"], got["embeddings"], strict=True)
+    }
 
 
 def set_collection(chunk_ids: list[int], document_id: int, collection: str) -> None:
