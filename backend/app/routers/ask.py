@@ -52,12 +52,13 @@ def ask(body: AskIn) -> StreamingResponse:
         started = time.perf_counter()
         state = {
             "answer": "",
-            "status": "answered",
+            "status": "stopped",  # until the answer is in; also what a disconnect leaves
             "conflicts": [],
             "sources": [],
             "confidence": {},
         }
-        try:
+
+        def steps():
             with SessionLocal() as db:
                 k = settings.topic_k if body.mode == "topic" else settings.top_k
                 sources, confidence = retrieve(db, query, k, body.document_ids, body.collection)
@@ -87,7 +88,7 @@ def ask(body: AskIn) -> StreamingResponse:
             cited = answer.citations(text)
             for s in state["sources"]:
                 s["cited"] = s["n"] in cited
-            state["answer"] = text
+            state["answer"], state["status"] = text, "answered"
             yield sse("answer", {"answer": text, "status": "answered", "cited": sorted(cited)})
 
             if body.check_conflicts:
@@ -99,6 +100,9 @@ def ask(body: AskIn) -> StreamingResponse:
                     except answer.GenerationError as e:
                         yield sse("notice", {"message": str(e)})
                 yield sse("conflicts", {"items": state["conflicts"], "pairs": len(pairs)})
+
+        try:
+            yield from steps()  # returns early when there's nothing more to send
         finally:
             ms = round((time.perf_counter() - started) * 1000)
             # Saved even when the browser leaves mid-answer

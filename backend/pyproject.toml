@@ -31,6 +31,8 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# PyMuPDF's SWIG bindings, not ours
+filterwarnings = ["ignore:builtin type .* has no __module__:DeprecationWarning"]
 
 [tool.ruff]
 line-length = 100
