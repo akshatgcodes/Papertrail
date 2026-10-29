@@ -26,7 +26,8 @@ COMMON = f"""Rules:
 - Cite the excerpts that support each sentence or bullet, like [1] or [2][4].
 - If excerpts from different documents disagree, say so plainly and cite both sides.
   Don't silently pick one.
-- If the excerpts don't cover it, reply with exactly {DECLINE} and nothing else."""
+- If the excerpts answer only part of it, answer that part and say what they don't cover.
+- Reply with exactly {DECLINE} and nothing else only when no excerpt bears on it at all."""
 
 ASK_SYSTEM = f"""You answer questions from the user's personal library: their PDFs, notes,
 saved articles. You get numbered excerpts, each labelled with its document.
