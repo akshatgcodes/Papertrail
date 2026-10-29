@@ -1,0 +1,44 @@
+# docker compose up --build  →  http://localhost:5173
+# LLM_API_KEY (or GROQ_API_KEY) from your shell turns on answers. Without it the library,
+# search and passages all work; questions stop after retrieval with a notice.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: papertrail
+      POSTGRES_PASSWORD: papertrail
+      POSTGRES_DB: papertrail
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U papertrail"]
+      interval: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://papertrail:papertrail@db:5432/papertrail
+      APP_PASSWORD: ${APP_PASSWORD:-papertrail}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-change-me}
+      FRONTEND_URL: http://localhost:${WEB_PORT:-5173}
+      LLM_PROVIDER: ${LLM_PROVIDER:-groq}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    # The Chroma index and uploaded PDFs live here; document metadata is in Postgres
+    volumes:
+      - papertrail-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    ports:
+      - "${WEB_PORT:-5173}:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  papertrail-data:
