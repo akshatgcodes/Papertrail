@@ -67,6 +67,8 @@ Comparing every pair of 8 passages with a model is 28 comparisons per question. 
 
 The pairing rules come from a failure. The first version took the four most similar cross-document pairs, full stop. For "When did Python 2 reach end of life?", all four went to two Wikipedia articles about Python (similarity 0.90 to 0.95) that agree with each other, and the note claiming 2015 was never compared. One pair per two documents, and requiring a cited passage, put the note next to the Wikipedia passage on the end-of-life date.
 
+Run live on Groq (`openai/gpt-oss-120b`), the four pairs for that question came back with one conflict: the note's "end of life on January 1, 2015" against Wikipedia's "initially set for 2015, then postponed to 2020". The other three pairs, which agree, were not flagged.
+
 Planted conflicts in the test library and how similar their passages are: Python 2 end of life, note against Wikipedia, 0.839; `useEffect` timing, note against React docs, 0.889; HTTP/2 connections, note against Wikipedia, 0.831; a PostgreSQL fact, note against Wikipedia, 0.813. All clear the 0.75 bar.
 
 ## SSE over POST, and saving in `finally`
