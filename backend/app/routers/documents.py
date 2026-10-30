@@ -21,7 +21,7 @@ from app.auth import require_owner
 from app.config import settings
 from app.db import get_db
 from app.ingest import pdf, service, text, web
-from app.models import Chunk, Document, utcnow
+from app.models import Chunk, Document, PdfFile, utcnow
 
 router = APIRouter(prefix="/api", tags=["documents"], dependencies=[Depends(require_owner)])
 
@@ -158,7 +158,7 @@ def upload(
         db.add(doc)
         db.flush()
         if data is not None:
-            service.pdf_path(doc.id).write_bytes(data)
+            doc.file = PdfFile(document_id=doc.id, data=data)
         out.append(_queue(db, doc, tasks))
     return out
 
@@ -276,8 +276,6 @@ def reindex(doc_id: int, tasks: BackgroundTasks, db: Session = Depends(get_db)) 
 def delete_document(doc_id: int, db: Session = Depends(get_db)) -> Response:
     d = _get(db, doc_id)
     store.remove([c.id for c in d.chunks])
-    if d.kind == "pdf":
-        service.pdf_path(d.id).unlink(missing_ok=True)
     db.delete(d)
     db.commit()
     return Response(status_code=204)
@@ -299,5 +297,5 @@ def page_image(
         if c is None or c.document_id != doc_id or c.page != page:
             raise HTTPException(404, "That passage isn't on this page")
         rects = c.rects or []
-    png = pdf.render_page(str(service.pdf_path(doc_id)), page, rects)
+    png = pdf.render_page(d.file.data, page, rects)
     return Response(png, media_type="image/png", headers={"Cache-Control": "private, max-age=3600"})

@@ -87,9 +87,9 @@ def passages(doc: pymupdf.Document) -> list[Passage]:
     return out
 
 
-def render_page(path: str, page_no: int, rects: list[list[float]], zoom: float = 1.6) -> bytes:
+def render_page(data: bytes, page_no: int, rects: list[list[float]], zoom: float = 1.6) -> bytes:
     """PNG of one page with the given rectangles highlighted."""
-    with pymupdf.open(path) as doc:
+    with pymupdf.open(stream=data, filetype="pdf") as doc:
         page = doc[page_no]
         for r in rects:
             box = pymupdf.Rect(*r) + (-2, -2, 2, 2)

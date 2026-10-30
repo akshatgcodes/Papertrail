@@ -3,10 +3,8 @@ returned (FastAPI background task), so the library shows it as "processing" mean
 
 import logging
 import threading
-from pathlib import Path
 
 from app import store
-from app.config import settings
 from app.db import SessionLocal
 from app.ingest import pdf, text
 from app.models import Chunk, Document, utcnow
@@ -19,19 +17,9 @@ _lock = threading.Lock()
 BATCH = 64
 
 
-def uploads() -> Path:
-    path = Path(settings.data_dir) / "uploads"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def pdf_path(doc_id: int) -> Path:
-    return uploads() / f"{doc_id}.pdf"
-
-
 def build_chunks(doc: Document) -> list[Chunk]:
     if doc.kind == "pdf":
-        with pdf.open_pdf(pdf_path(doc.id).read_bytes()) as parsed:
+        with pdf.open_pdf(doc.file.data) as parsed:
             return [
                 Chunk(idx=i, page=p.page, rects=p.rects, text=p.text, heading="")
                 for i, p in enumerate(pdf.passages(parsed))
