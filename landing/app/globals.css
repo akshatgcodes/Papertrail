@@ -1,0 +1,43 @@
+@import "tailwindcss";
+/* Colours come from the app itself, so the landing page and the app match */
+@import "./palette.css";
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+.bg-noise {
+  background-image: radial-gradient(var(--border) 0.6px, transparent 0.6px);
+  background-size: 18px 18px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-fg);
+}
+
+.prose-inline code {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  padding: 0.08em 0.4em;
+  border-radius: 4px;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
