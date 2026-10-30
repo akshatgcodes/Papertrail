@@ -26,9 +26,13 @@ class Settings(BaseSettings):
     groq_api_key: str = ""  # accepted as an alias for llm_api_key
     llm_max_tokens: int = 8000  # reasoning models spend part of this before answering
 
-    # Embeddings and re-ranking run locally. "hash" / "none" are stand-ins for the tests
+    # Embeddings and re-ranking run locally by default. "openai" uses any OpenAI-compatible
+    # embeddings API instead (see docs/DEPLOY.md). "hash" / "none" are stand-ins for the tests
     embeddings: str = "fastembed"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embeddings_base_url: str = ""
+    embeddings_api_key: str = ""
+    embedding_dimensions: int = 0  # 0 = the model's default
     reranker: str = "fastembed"
     reranker_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
 
@@ -41,6 +45,10 @@ class Settings(BaseSettings):
     # Best passage's cosine similarity below which the library has nothing on the
     # question, and the model isn't called (see docs/DECISIONS.md for the calibration)
     min_similarity: float = 0.68
+
+    # "chroma" keeps vectors on disk in DATA_DIR; "pgvector" keeps them in Postgres, for
+    # hosts without a persistent disk
+    vector_store: str = "chroma"
 
     # Conflict check: passage pairs from different documents at least this similar are
     # "about the same thing" and get compared; at most `max_conflict_pairs` per question

@@ -76,7 +76,7 @@ def events(response) -> list[tuple[str, dict]]:
 def client():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
-    store.get_store().reset_collection()
+    store.reset()
     with TestClient(app) as c:
         yield c
 

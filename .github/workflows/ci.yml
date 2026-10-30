@@ -49,7 +49,7 @@ jobs:
     # The backend tests run on Postgres here (SQLite locally), the database compose uses
     services:
       postgres:
-        image: postgres:17-alpine
+        image: pgvector/pgvector:pg17   # Postgres with the pgvector extension
         env:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
@@ -137,6 +137,9 @@ jobs:
             fi
             if [ -d tests ] || ls test_*.py */test_*.py >/dev/null 2>&1; then
               echo "::group::pytest"; pip install pytest; $PY python -m pytest -q; echo "::endgroup::"
+              if grep -qs pgvector pyproject.toml; then
+                echo "::group::pytest (pgvector store)"; VECTOR_STORE=pgvector $PY python -m pytest -q; echo "::endgroup::"
+              fi
             fi
           }
 

@@ -44,8 +44,26 @@ class HashEmbeddings(Embeddings):
         return self._vec(text)
 
 
+def api_embeddings() -> Embeddings:
+    """Any OpenAI-compatible embeddings endpoint (Gemini, OpenAI, Ollama). For small hosts:
+    the local model needs more memory than a 512 MB instance has."""
+    from langchain_openai import OpenAIEmbeddings
+
+    return OpenAIEmbeddings(
+        model=settings.embedding_model,
+        base_url=settings.embeddings_base_url or None,
+        api_key=settings.embeddings_api_key,
+        dimensions=settings.embedding_dimensions or None,
+        # Send plain text: the default tokenises with tiktoken, which only OpenAI accepts
+        check_embedding_ctx_length=False,
+        chunk_size=100,
+    )
+
+
 @lru_cache
 def get_embeddings() -> Embeddings:
     if settings.embeddings == "hash":
         return HashEmbeddings()
+    if settings.embeddings == "openai":
+        return api_embeddings()
     return FastEmbedEmbeddings(settings.embedding_model)

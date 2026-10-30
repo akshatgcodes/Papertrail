@@ -1,12 +1,12 @@
 """Chroma, through LangChain: one vector per passage, tagged with its document and
-collection so a question can be limited to either."""
+collection so a question can be limited to either. With VECTOR_STORE=pgvector the same
+functions use app/pgstore.py instead."""
 
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-from langchain_chroma import Chroma
-
+from app import pgstore
 from app.config import settings
 from app.embeddings import get_embeddings
 
@@ -19,7 +19,10 @@ class Hit:
 
 
 @lru_cache
-def get_store() -> Chroma:
+def get_store():
+    # Imported here so the pgvector setup never loads Chroma (memory on small hosts)
+    from langchain_chroma import Chroma
+
     return Chroma(
         collection_name="passages",
         embedding_function=get_embeddings(),
@@ -33,6 +36,8 @@ def add(items: list[tuple[int, int, str, str]]) -> None:
     """items: (chunk_id, document_id, collection, text to embed)"""
     if not items:
         return
+    if settings.vector_store == "pgvector":
+        return pgstore.add(items)
     get_store().add_texts(
         texts=[text for *_, text in items],
         metadatas=[{"document_id": d, "collection": c} for _, d, c, _ in items],
@@ -49,6 +54,8 @@ def where(document_ids: list[int] | None = None, collection: str | None = None) 
 
 
 def search(query: str, k: int, flt: dict | None = None) -> list[Hit]:
+    if settings.vector_store == "pgvector":
+        return [Hit(*row) for row in pgstore.search(query, k, flt)]
     results = get_store().similarity_search_with_score(query, k=k, filter=flt)
     return [
         Hit(int(doc.id), int(doc.metadata["document_id"]), round(1 - distance, 4))
@@ -59,6 +66,8 @@ def search(query: str, k: int, flt: dict | None = None) -> list[Hit]:
 def vectors(chunk_ids: list[int]) -> dict[int, list[float]]:
     if not chunk_ids:
         return {}
+    if settings.vector_store == "pgvector":
+        return pgstore.vectors(chunk_ids)
     got = get_store().get(ids=[str(c) for c in chunk_ids], include=["embeddings"])
     # Chroma returns numpy arrays; plain floats keep the maths and the JSON simple
     return {
@@ -67,7 +76,9 @@ def vectors(chunk_ids: list[int]) -> dict[int, list[float]]:
 
 
 def set_collection(chunk_ids: list[int], document_id: int, collection: str) -> None:
-    if chunk_ids:
+    if chunk_ids and settings.vector_store == "pgvector":
+        pgstore.set_collection(chunk_ids, collection)
+    elif chunk_ids:
         meta = {"document_id": document_id, "collection": collection}
         get_store()._collection.update(
             ids=[str(c) for c in chunk_ids], metadatas=[meta] * len(chunk_ids)
@@ -75,5 +86,15 @@ def set_collection(chunk_ids: list[int], document_id: int, collection: str) -> N
 
 
 def remove(chunk_ids: list[int]) -> None:
-    if chunk_ids:
+    if chunk_ids and settings.vector_store == "pgvector":
+        pgstore.remove(chunk_ids)
+    elif chunk_ids:
         get_store().delete(ids=[str(c) for c in chunk_ids])
+
+
+def reset() -> None:
+    """Empty the store (tests)."""
+    if settings.vector_store == "pgvector":
+        pgstore.reset()
+    else:
+        get_store().reset_collection()
