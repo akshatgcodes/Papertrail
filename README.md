@@ -16,6 +16,9 @@
 </p>
 
 <p align="center">
+  <a href="https://papertrail.akshatgcodes.in">
+    <img src="https://img.shields.io/badge/live_demo-b4531c-b4531c?style=flat-square" alt="Live Demo">
+  </a>
   <img src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React">
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI">
@@ -37,6 +40,9 @@
 4. **Or ask about a topic.** "What do I know about attention in transformers?" is not a question. Topic mode pulls more passages and writes a grouped summary of what your documents say, and where they differ.
 
 When nothing in the library is close to the question, Papertrail says so without calling the model at all.
+
+> **Live demo →** [papertrail.akshatgcodes.in](https://papertrail.akshatgcodes.in)
+> Log in with the demo password `demo1234`. The free host sleeps when idle, so the first load can take up to a minute.
 
 ---
 
@@ -63,7 +69,7 @@ When nothing in the library is close to the question, Papertrail says so without
 | Retrieval | Chroma via LangChain · `BAAI/bge-small-en-v1.5` embeddings · `ms-marco-MiniLM-L-6-v2` cross-encoder, both through fastembed |
 | Ingestion | PyMuPDF (text blocks with positions) · BeautifulSoup + lxml for web pages |
 | Generation | LangChain `ChatOpenAI` against Groq (`openai/gpt-oss-120b`), OpenAI or Ollama |
-| Storage | PostgreSQL (or SQLite) for documents, passages and history; Chroma on disk for vectors |
+| Storage | PostgreSQL (or SQLite) for documents, passages and history; Chroma on disk for vectors, or pgvector in Postgres (`VECTOR_STORE=pgvector`) |
 | Tooling | uv · pytest · Vitest · ruff · Docker Compose · GitHub Actions |
 
 ---
@@ -103,6 +109,8 @@ Asking a model to compare every pair of eight passages is 28 comparisons. Most p
 
 **Why local embeddings instead of OpenAI's?**
 The vectors for a library have to be recomputed if the embedding model changes, so the model should be one you control. Retrieval with bge-small and the re-ranker takes about 300–900 ms per question on a laptop CPU, needs no key, and gives the same scores every run, which is what made the similarity cut-off calibratable.
+
+The live demo is the exception: the local model and re-ranker need about 950 MB and its free host has 512 MB, so it uses `EMBEDDINGS=openai` with Gemini, `VECTOR_STORE=pgvector` and no re-ranker, with the cut-offs measured again for that model. See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 More in [docs/DECISIONS.md](docs/DECISIONS.md).
 

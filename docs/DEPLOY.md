@@ -1,8 +1,27 @@
 # Deploy
 
-Papertrail is **not deployed yet**. These are the intended setups.
+## Live demo
 
-## One server
+Live at **https://papertrail.akshatgcodes.in**: one free Render web service (Python runtime, Singapore), connected to this repo, so every push to `main` deploys. The free instance sleeps after 15 minutes idle and takes up to a minute to wake.
+
+The API serves the whole site when `SITE_DIR` is set (`backend/app/site.py`): the landing page (`landing/`, a Next.js static export) at `/`, the React app at `/app/`, and the API at `/api`.
+
+| Setting | Value |
+|---|---|
+| Build | `pip install uv && cd backend && uv sync --frozen --no-dev && cd ../landing && npm ci && npm run build && cd ../frontend && npm ci && VITE_BASE=/app/ npm run build` |
+| Start | `cd backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Health check | `/health` |
+
+A 512 MB instance with no persistent disk changes two things (see docs/DECISIONS.md):
+
+- **Vectors** go to Postgres with pgvector (`VECTOR_STORE=pgvector`) instead of Chroma on disk, and uploaded PDFs are stored in the database (they always are).
+- **Embeddings** come from Gemini's OpenAI-compatible API instead of the local model, and the re-ranker is off: the local model and re-ranker together need about 950 MB.
+
+Environment: `DATABASE_URL` (Neon), `SESSION_SECRET`, `APP_PASSWORD` (`demo1234` on the demo), `LLM_PROVIDER=groq`, `LLM_API_KEY`, `VECTOR_STORE=pgvector`, `EMBEDDINGS=openai`, `EMBEDDINGS_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`, `EMBEDDING_MODEL=gemini-embedding-001`, `EMBEDDING_DIMENSIONS=768`, `EMBEDDINGS_API_KEY`, `RERANKER=none`, `MIN_SIMILARITY` and `CONFLICT_SIMILARITY` (calibrated for Gemini), `DATA_DIR=/tmp/papertrail`, `SITE_DIR=/opt/render/project/src`, `FRONTEND_URL`, `PYTHON_VERSION`.
+
+## Other ways to host it
+
+### One server
 
 `docker compose up -d --build` on a small VM with at least 2 GB of memory (the API container used about 750 MB after indexing four documents and answering a question locally), with TLS in front of the `web` service. In an `.env` next to the Compose file:
 
@@ -12,7 +31,7 @@ Papertrail is **not deployed yet**. These are the intended setups.
 
 Back up both volumes: `pgdata` (documents, passages, history) and `papertrail-data` (the Chroma index and the original PDFs). The index can be rebuilt from the database with Re-index; the PDFs can't.
 
-## Split hosting
+### Split hosting
 
 | Part | Option |
 |---|---|

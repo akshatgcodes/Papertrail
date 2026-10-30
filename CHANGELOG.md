@@ -6,6 +6,13 @@ All notable changes to **Papertrail** are documented here.
 
 ## [Unreleased]
 
+### ✨ Added
+- Product page at `/` and the app at `/app/`, served together from one host
+- Deployed on Render (free web service): the API serves the landing page and app when `SITE_DIR` is set, Neon Postgres
+- `VECTOR_STORE=pgvector` keeps vectors in Postgres, for hosts without a persistent disk
+- `EMBEDDINGS=openai` uses any OpenAI-compatible embeddings API (Gemini on the demo)
+- Uploaded PDFs are stored in the database
+
 ---
 
 ## [0.1.0] — 2026-10-30
