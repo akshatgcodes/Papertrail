@@ -105,6 +105,7 @@ def api_embeddings() -> Embeddings:
             check_embedding_ctx_length=False,
             chunk_size=100,
             max_retries=1,  # PacedEmbeddings does the waiting
+            timeout=60,  # a dropped connection would otherwise hang the upload forever
         )
     )
 
